@@ -5,6 +5,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 <!--xml方法下用这个包扫描则可以注入,用注解法@Controller,@Service,@Repository,@Component则可以完成-->
     <context:component-scan base-package="HMX.bean"></context:component-scan>
+    <context:property-placeholder location="classpath:person.properties"/>
     <bean id="person" class="HMX.bean.Person">
     <property name="age" value="18"></property>
     <property name="name" value="张三"></property>
