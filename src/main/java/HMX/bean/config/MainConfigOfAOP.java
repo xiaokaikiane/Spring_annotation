@@ -17,7 +17,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  *   后置通知(@After):logEnd:在目标方法(div)运行结束之后运行
  *   返回通知(@AfterReturning):logReturn:在目标方法(div)正常返回之后运行
  *   异常通知(@AfterThrowing):logException:在出异常的时候运行
- *   环绕方法(@Around):动态代理,手动推进目标方法运行(joinPoint.procced())
+ *   环绕方法(@Around):动态代理,手动推进目标方法运行(joinPoint.proceed())
  * 4.给切面类的目标方法标注何时何地运行
  * 5.将切面类和业务逻辑类(目标方法所在类)都加入到容器中
  * 6.告诉Spring哪个类是切面类(给切面类加上@Aspect)
@@ -91,6 +91,51 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  *               }
  *            3.doCreateBean(beanName,mbdToUse,args);真正的去创建一个Bean实例,和3.6流程一样
  *
+ *    AnnotationAwareAspectJAutoProxyCreator[InstantiationAwareBeanPostProcessor]的作用;
+ *     1.每一个Bean创建之前,调用postProcessBeforeInstantiation()
+ *          1).当前Bean是否在adviserBean中
+ *          2).判断当前bean是否是基础类型的Advice,Pointcut,Advisor.AopInfrastructureBean,
+ *          或者是否是切面(@Aspect)
+ *          3).是否需要跳过
+ *               1.获取候选的增强器(切面里面的通知方法) List<advisor> candidateAdvisors]
+ *                每一个封装的通知方法的增强器是InstantiationModelAwarePointcutAdvisor;
+ *                判断每一个增强器是否是AspectPointcutAdvisor类型的;返回为true
+ *               2.永远返回false;
+ *     2.创建对象
+ *      postProcessorAfterInitialization;
+ *        return wrapIfNecessary(Bean,beanName,cacheKey);
+ *        1.获取当前bean的左右增强器(通知方法)
+ *            1.找到能在当前Bean使用的增强器(找哪些通知方法是需要切入当前bean方法的)
+ *            2.获取到能在当前bean使用的增强器
+ *            3.给增强器排序
+ *        2.保存当前bean在advisorBeans中
+ *        3.如果当前Bean需要增强,创建当前Bean的代理对象
+ *             1.获取所有增强器(通知方法)
+ *             2.保存到proxyFactory
+ *             3.创建代理对象(JDk和cglib)
+ *        4.给容器中返回当前组件使用的cglib增强了的代理对象;
+ *        5.以后容器中获取到的就是这个组件的代理对象,执行目标方法的时候,代理对象就会执行通知方法的流程
+ *    3.目标方法的执行
+ *       容器中保存了组件的代理对象(增强后的对象),这个对象里面保存了详细信息(比如增强器,目标对象,xx)
+ *       1.CglibAopProxy.intercept();拦截目标方法的执行
+ *       2.根据proxyFactory对象获取将要执行的目标方法拦截器链
+ *       3.如果没有拦截器链,直接执行目标方法
+ *       4.如果有拦截器链,把需要执行的目标对象,目标方法,拦截器链等信息传入创建一个CglibMethodInvocation对象
+ *         并调用MethodInvocation.proceed()
+ *       List<Object> chain=this.advised.getInterceptorsAndDynamicInterceptionAdvice
+ *        1).LIst<Object> interceptorList   保存所有的拦截器 5
+ *          一个默认的ExposeInvocationInterceptor和四个增强器
+ *        2).遍历所有的增强器,将其转为Interceptor
+ *           registry.getInterceptors(advisor);
+ *        3).将增强器转化为List<MethodInterceptor>;
+ *            如果是MethodInterceptor,直接加入到集合中
+ *            如果不是,使用AdvisorAdepter将增强器转化为MethodInterceptor;
+ *            转化完成返回MethodInterceptor数组
+ *    拦截器链:(每一个通知方法又被包装为方法拦截器,利用MethodInterceptor机制)
+ *    拦截器链的触发过程:
+ *     1.如果没有拦截器执行目标方法,或者拦截器的索引和拦截器数组-1大小一样(指定到了最后一个拦截器)
+ *       就会执行目标方法
+ *     2.
  *
  *
  *
